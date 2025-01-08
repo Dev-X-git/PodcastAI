@@ -6,7 +6,7 @@ WORKDIR /app/frontend
 COPY package.json package-lock.json ./
 
 # Install dependencies
-RUN npm install
+RUN npm cache clean --force && npm install
 
 RUN npm install @next/swc-linux-x64-musl
 

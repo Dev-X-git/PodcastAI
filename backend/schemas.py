@@ -21,9 +21,21 @@ class ScriptBase(BaseModel):
     category: Optional[str] = None
     audio_path: Optional[str] = None
     noupdate:Optional[bool] = False
+    type_content: Optional[str] = None
 
 class Script(ScriptBase):
     id: int
     class Config:
         form_attributes = True
 
+class ContentTypeBase(BaseModel):
+    title: str
+
+class ContentTypeCreate(ContentTypeBase):
+    pass
+
+
+class ContentType(ContentTypeBase):
+    id: int
+    class Config:
+        form_attributes = True

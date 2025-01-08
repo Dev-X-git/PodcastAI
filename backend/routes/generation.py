@@ -6,11 +6,13 @@ from utils.generation_conversation import generate_conversation,generate_categor
 import json
 router = APIRouter()
 
+#Endpoint:generate conversation from media
 @router.post("/generate-conversation")
 async def generate_conversation_endpoint(file: UploadFile = File(None), prompt: str = Form(...), userPrompt: str=Form(...)):
     if file:
         # Save the uploaded file
         file_location = f"./media/{file.filename}"
+        #Get text from media
         with open(file_location, "wb") as buffer:
             buffer.write(await file.read())
         if file.content_type.startswith('image/'):
@@ -24,10 +26,12 @@ async def generate_conversation_endpoint(file: UploadFile = File(None), prompt: 
 
     if prompt is None:
         return JSONResponse(status_code=400, content={"error": "Prompt not found"})
-
+    
+    #generate converstion from text
     result = generate_conversation(prompt, article,userPrompt)
     return {"result": result}
 
+#Endpoint:generate conversation from text
 @router.post("/generate-conversation-by-text")
 async def generate_conversation_by_text_endpoint(text: str = Form(...), prompt: str = Form(...), userPrompt: str=Form(...)):
     if prompt is None:
@@ -35,21 +39,25 @@ async def generate_conversation_by_text_endpoint(text: str = Form(...), prompt: 
     result = generate_conversation(prompt, text,userPrompt)
     return {"result": result}
 
+#Endpoint:Generate category from title
 @router.post("/generate-category-by-title")
 async def generate_category_by_title_endpoint(text: str = Form(...)): 
     result = generate_category(text)
     return {"result": result}
 
+#Endpoint:Generate Audio from scripts
 @router.post("/generate-audio")
 async def generate_audio_endpoint(conversation: str = Form(...),currentSpeaker:str=Form(...), id:str=Form(...)):
     audio_file_path = generate_audio(conversation,currentSpeaker,id)
     return FileResponse("media/podcast"+id+".mp3", media_type="audio/mpeg", filename="podcast.mp3")
 
+#Endpoint:Get google voice list
 @router.post("/get-voice-list")
 async def get_voice_list_endpoint():
     voice_list = get_voice_list()
     return {"voice_list": voice_list}
 
+#Endpoint:Get 11labs voice list
 @router.post("/get-elevenlabs-voice-list")
 async def get_elevenlabs_voice_list_endpoint():
     voice_list = get_elevenlabs_voices_list()

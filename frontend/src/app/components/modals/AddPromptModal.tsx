@@ -1,23 +1,29 @@
 import React, { useState } from 'react';
 
+// Define the props for the AddPromptModal component
 interface AddPromptModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  onAdd: (title: string, description: string) => void;
+  isOpen: boolean; // Determines if the modal is open
+  onClose: () => void; // Function to close the modal
+  onAdd: (title: string, description: string) => void; // Function to add a new prompt
 }
 
+// AddPromptModal component
 export const AddPromptModal: React.FC<AddPromptModalProps> = ({ isOpen, onClose, onAdd }) => {
+  // State to manage the new prompt's title and description
   const [newPrompt, setNewPrompt] = useState({ title: '', description: '' });
 
+  // Function to handle adding a new prompt
   const handleAdd = () => {
-    onAdd(newPrompt.title, newPrompt.description);
-    setNewPrompt({ title: '', description: '' });
+    onAdd(newPrompt.title, newPrompt.description); // Call the onAdd function with the new prompt data
+    setNewPrompt({ title: '', description: '' }); // Reset the prompt fields
   };
 
+  // If the modal is not open, return null to render nothing
   if (!isOpen) {
     return null;
   }
 
+  // Render the modal
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
       <div className="bg-slate-800 p-6 rounded-lg w-96">
@@ -28,7 +34,7 @@ export const AddPromptModal: React.FC<AddPromptModalProps> = ({ isOpen, onClose,
           className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
           value={newPrompt.title}
           onChange={(e) =>
-            setNewPrompt({ ...newPrompt, title: e.target.value })
+            setNewPrompt({ ...newPrompt, title: e.target.value }) // Update the title in state
           }
         />
         <textarea
@@ -36,19 +42,19 @@ export const AddPromptModal: React.FC<AddPromptModalProps> = ({ isOpen, onClose,
           className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
           value={newPrompt.description}
           onChange={(e) =>
-            setNewPrompt({ ...newPrompt, description: e.target.value })
+            setNewPrompt({ ...newPrompt, description: e.target.value }) // Update the description in state
           }
         />
         <div className="flex justify-end gap-2">
           <button
             className="px-4 py-2 bg-gray-600 text-white rounded"
-            onClick={onClose}
+            onClick={onClose} // Close the modal
           >
             Cancel
           </button>
           <button
             className="px-4 py-2 bg-cyan-600 text-white rounded"
-            onClick={handleAdd}
+            onClick={handleAdd} // Add the new prompt
           >
             Add
           </button>
@@ -57,4 +63,3 @@ export const AddPromptModal: React.FC<AddPromptModalProps> = ({ isOpen, onClose,
     </div>
   );
 };
- 

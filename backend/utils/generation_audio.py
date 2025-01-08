@@ -15,17 +15,17 @@ from google.api_core.exceptions import ResourceExhausted
 
 load_dotenv()
 
-# Add this line with the other environment variable
+# load elevenlabs and google crednetial form env file
 elevenlabs_api_key = os.getenv('ELEVENLABS_API_KEY')
-# Now you can access the environment variable
 google_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 client = texttospeech.TextToSpeechClient()
 elevenlabs_client = ElevenLabs(api_key=elevenlabs_api_key)
 
-
+#generate audio from text using google
 def synthesize_speech_google(text, speaker, index, speaker_voice_map):
     synthesis_input = texttospeech.SynthesisInput(text=text)
+    #set parameter languages and speaker name
     voice = texttospeech.VoiceSelectionParams(
         language_code="en-US",
         name=speaker_voice_map[speaker]
@@ -33,12 +33,11 @@ def synthesize_speech_google(text, speaker, index, speaker_voice_map):
     audio_config = texttospeech.AudioConfig(
         audio_encoding=texttospeech.AudioEncoding.LINEAR16
     )
-
     retry_count = 0
     delay = 2  # delay in seconds
-
     while True:
         try:
+            #generate audio and save it
             response = client.synthesize_speech(
                 input=synthesis_input, voice=voice, audio_config=audio_config
             )
@@ -47,16 +46,18 @@ def synthesize_speech_google(text, speaker, index, speaker_voice_map):
                 out.write(response.audio_content)
             print(f'Audio content written to file "{filename}"')
             break  # If successful, break the loop
-        except ResourceExhausted:
-            if retry_count >= 5:  # Maximum retries
+        except Exception as e:  # Catch all exceptions
+            if retry_count >= 7:  # Maximum retries
+                print(f"Failed synthesize_speech_google after {retry_count} retries due to: {e}")
                 raise  # If maximum retries exceeded, raise the exception
             else:
-                print(f"Quota exceeded, retrying in {delay} seconds...")
+                print(f"Error occurred at synthesize speech: {e}. Retrying in {delay} seconds...")
                 time.sleep(delay)
                 retry_count += 1
                 delay *= 2  # Double the delay for exponential backoff
-
+#generate audio from text using elevenlabs
 def synthesize_speech_elevenlabs(text, speaker, index, speaker_voice_map):
+    #set elevenlabs parameters to generate audio
     audio_generator = elevenlabs_client.generate(
         text=text,
         voice=Voice(
@@ -64,29 +65,30 @@ def synthesize_speech_elevenlabs(text, speaker, index, speaker_voice_map):
             settings=VoiceSettings(stability=0.71, similarity_boost=0.5, style=0.0, use_speaker_boost=True)
         )
     )
+    #save audio generated
     filename = f"media/audio-files/{index}_{speaker}.mp3"
     with open(filename, "wb") as out:
         for chunk in audio_generator:  # Iterate over the generator
             out.write(chunk)  # Write each chunk to the file
     print(f'Audio content written to file "{filename}"')
 
-
+#which tool use in generating audio.
 def synthesize_speech(text, speaker, index,speaker_voice_map):
     print(speaker_voice_map)
     if speaker == "person1":
         if speaker_voice_map["style1"]:
-            print("google1")
+
             synthesize_speech_google(text, speaker, index,speaker_voice_map)
         else:
-            print("elevenlabs1")
+             
             synthesize_speech_elevenlabs(text, speaker, index,speaker_voice_map)
     else:
         if speaker_voice_map["style2"]:
             synthesize_speech_google(text, speaker, index,speaker_voice_map)
-            print("google2")
+             
         else:
             synthesize_speech_elevenlabs(text, speaker, index,speaker_voice_map)
-            print("elevenlabs2")
+              
 
 def natural_sort_key(filename):
     return [int(text) if text.isdigit() else text for text in re.split(r'(\d+)', filename)]
@@ -117,6 +119,7 @@ def generate_audio(conversation, currentSpeaker, id):
 
     merge_audios(audio_folder, output_file, generated_count)  # Pass the count to the merge function
 
+#merge audios generated
 def merge_audios(audio_folder, output_file, limit):
     combined = AudioSegment.empty()
     audio_files = sorted(
@@ -144,8 +147,7 @@ def get_voice_list():
           
             voice_list.append(voice.name)
     return voice_list
-
-# synthesize_speech_heygen("hello", "person1", 1)
+ 
 
 def get_elevenlabs_voices_list():
     response = elevenlabs_client.voices.get_all()

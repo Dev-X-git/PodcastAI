@@ -10,7 +10,7 @@ COPY . /app
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir --default-timeout=100 -r requirements.txt
 
-RUN apt-get update && apt-get install -y ffmpeg
+RUN apt-get update && apt-get install -y ffmpeg && apt-get install -y postgresql-client && rm -rf /var/lib/apt/lists/*
 
 # Make port 8080 available to the world outside this container
 EXPOSE 8080

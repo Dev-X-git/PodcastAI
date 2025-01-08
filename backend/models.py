@@ -15,6 +15,12 @@ class UserPrompt(Base):
     title = Column(String, index=True)
     description = Column(String, index=True)
 
+class ContentType(Base):
+    __tablename__ = "contenttypes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String, index=True)
+
 class Script(Base):
     __tablename__ = "scripts"
 
@@ -26,3 +32,4 @@ class Script(Base):
     category = Column(String)
     audio_path = Column(String)
     noupdate = Column(Boolean)
+    type_content = Column(String)

@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { Bars, Circles } from "react-loading-icons";
 import Switch from "react-switch";
 import React, { useRef } from "react";
-import { ModalStatus, PromptType } from "./components/types";
+import { ModalStatus, PromptType, RangeType, TypeContentType, HistoryEntry } from "./components/types";
 import { formatDuration, formatDownloadFile } from "./components/utils";
 
 import {
@@ -20,6 +20,9 @@ import {
   AiFillPlusSquare,
   AiFillEdit,
   AiTwotoneSave,
+  AiOutlineSwapRight,
+  AiOutlineCloudDownload,
+  AiOutlineCloudUpload,
 } from "react-icons/ai";
 import { DownloadModal } from "./components/modals/DownloadModal";
 import { Timer } from "./components/labels/Timers";
@@ -28,70 +31,85 @@ import { HistoryModal } from "./components/modals/HistoryModal";
 import { Title } from "./components/labels/Title";
 import { GeneratedTextPanel } from "./components/labels/GeneratedTextPanel";
 import { title } from "process";
+import SetGenerateAudioRangeModal from "./components/modals/SetGenerateAudioRangeModal";
 export default function Home() {
   const [modalStatus, setModalStatus] = useState<ModalStatus>(
     ModalStatus.Closed
   );
-  const [isNoUpdate, setIsNoUpdate] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isGenCategory, setIsGenCategory] = useState(true);
-  const [textMode, setTextMode] = useState(true);
-  const [text, setText] = useState("");
-  const [fileUploaded, setFileUploaded] = useState(false); // State
-  const [genLoading, setGenLoading] = useState(false);
+  const [isNoUpdate, setIsNoUpdate] = useState(false); //Noupdate checkbox state
+  const [isLoading, setIsLoading] = useState(true); //loading state
+  const [isGenCategory, setIsGenCategory] = useState(true); //generate category checkbox state
+  const [textMode, setTextMode] = useState(true); //textmode switch state
+  const [text, setText] = useState("");  //text sate
+  const [fileUploaded, setFileUploaded] = useState(false); // file update
+  const [genLoading, setGenLoading] = useState(false);  //loading generate script
   const [file, setFile] = useState<File | null>(null); // State to hold the file
   const [generated, setGenerated] = useState(false);
+
+  const [genRange, setGenRange] = useState<RangeType>({ start: 0, end: 0 }); //set  generate Range 
   const [generatedText, setGeneratedText] = useState<
-    Array<{ id: number; script: any[]; category: string }>
-  >([]);
-  const [audioURL, setAudioURL] = useState<string[]>([]);
-  const [audioLoading, setAudioLoading] = useState(false);
-  const [audio, setAudio] = useState<HTMLAudioElement[]>([]);
-  const [isPlaying, setIsPlaying] = useState<boolean>(false);
-  const [scriptTimers, setScriptTimers] = useState<string[]>([]);
-  const [audioTimers, setAudioTimers] = useState<string[]>([]);
-  const [scriptTotalTimer, setScriptTotalTimer] = useState(0);
-  const [audioTotalTimer, setAudioTotalTimer] = useState(0);
-  const [prompts, setPrompts] = useState<PromptType[]>([]);
-  const [selectedPrompt, setSelectedPrompt] = useState<{
+    Array<{ id: number; script: any[]; category: string; type_content: string }>
+  >([]);  //save generated text
+  const [audioURL, setAudioURL] = useState<string[]>([]);  //save audiourls
+  const [audioLoading, setAudioLoading] = useState(false);  //loading audio generating
+  const [audio, setAudio] = useState<HTMLAudioElement[]>([]);  // set sudio
+  const [isPlaying, setIsPlaying] = useState<boolean>(false); //playing state
+  const [scriptTimers, setScriptTimers] = useState<string[]>([]); //script timer
+  const [audioTimers, setAudioTimers] = useState<string[]>([]); //audio timer
+  const [scriptTotalTimer, setScriptTotalTimer] = useState(0);// script total timer
+  const [audioTotalTimer, setAudioTotalTimer] = useState(0);//audio total timer
+  const [prompts, setPrompts] = useState<PromptType[]>([]); //prompt
+  const [selectedPrompt, setSelectedPrompt] = useState<{         // selected prompt
     id: number;
     title: string;
     description: string;
   }>();
-  const [userPrompts, setUserPrompts] = useState<PromptType[]>([]);
-  const [selectedUserPrompt, setSelectedUserPrompt] = useState<PromptType>();
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [contentTypes, setContentTypes] = useState<TypeContentType[]>([]); //content type
+  const [selectedContentType, setSelectedContentType] = useState<TypeContentType>(); //selected content type
+  const [userPrompts, setUserPrompts] = useState<PromptType[]>([]);   //user prompts
+
+  const [selectedUserPrompt, setSelectedUserPrompt] = useState<PromptType>(); //selected user prompts
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);  //modal open state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isUserAddModalOpen, setIsUserAddModalOpen] = useState(false);
   const [isUserEditModalOpen, setIsUserEditModalOpen] = useState(false);
-  const [newPrompt, setNewPrompt] = useState({ title: "", description: "" });
-  const [voiceList, setVoiceList] = useState([]);
-  const [voiceElevenLabs, setVoiceElevenLabs] = useState<
+  const [isConTypeAddModalOpen,setIsConTypeAddModalOpen] =useState(false);
+  const [isConTypeEditModalOpen,setIsConTypeEditModalOpen] =useState(false);
+  const [newContentType,setNewContentType] = useState({title:""});  //new cotent type
+  const [newPrompt, setNewPrompt] = useState({ title: "", description: "" }); //new prompt
+  const [voiceList, setVoiceList] = useState([]);  //save voicelist state
+  const [voiceElevenLabs, setVoiceElevenLabs] = useState<  //save 11labs list
     { voice_id: string; name: string }[]
   >([]);
-  const [speaker1, setSpeaker1] = useState(true);
-  const [speaker2, setSpeaker2] = useState(true);
-  const [processingIndex, setProcessingIndex] = useState(0);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const [editingPrompt, setEditingPrompt] = useState<PromptType | null>(null);
-  const [currentIndex, setCurrentIndex] = useState(1);
-  const [historyData, setHistoryData] = useState<any[][]>();
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [isEditGeneratedText, setIsEditGeneratedText] = useState(false);
-  const [isEditGeneratedTextSave, setIsEditGeneratedTextSave] = useState(false);
-  const [currentSpeaker, setCurrentSpeaker] = useState({
+  const [speaker1, setSpeaker1] = useState(true);  //speak1 state
+  const [speaker2, setSpeaker2] = useState(true);   //speak2 state
+  const [processingIndex, setProcessingIndex] = useState(0);  // index number of proceessing currently
+  const fileInputRef = useRef<HTMLInputElement>(null); // Ref for upload book list
+  const fileInputRefRestore = useRef<HTMLInputElement>(null); // ref for upload restore
+  const [editingPrompt, setEditingPrompt] = useState<PromptType | null>(null); // editing prompt
+  const [editingConType, setEditingConType] = useState<TypeContentType | null>(null); // editing content type
+  const [currentIndex, setCurrentIndex] = useState(1);  // current index of generated scripts
+  const [historyData, setHistoryData] = useState<HistoryEntry[]>([]); // History data from database
+  const [historyLoading, setHistoryLoading] = useState(false); // loading history data form database
+  const [isEditGeneratedText, setIsEditGeneratedText] = useState(false); // set state generate text editing
+  const [isEditGeneratedTextSave, setIsEditGeneratedTextSave] = useState(false); // 
+  const [currentSpeaker, setCurrentSpeaker] = useState({    //current state speaker
     person1: "en-US-Casual-K",
     style1: true,
     person2: "en-US-Casual-K",
     style2: true,
   });
+  const [isBackupLoading, setIsBackupLoading] = useState(false);  //backup loading
+  const [isRestoreLoading, setIsRestoreLoading] = useState(false); //restore loading
+  const [startIndex, setStartIndex] = useState(1);   // start index
+  const [ttotalCount, setTtotalCount] = useState(0); // total count
+  const [currentPagenation, setCurrentPagenation] = useState(0) //current pagenation
 
-  const [startIndex, setStartIndex] = useState(1);
 
   const handleEditPrompt = async () => {
     if (!editingPrompt) return;
-
     try {
+      //update prompt on db by id
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/prompts/${editingPrompt.id}`,
         {
@@ -116,24 +134,28 @@ export default function Home() {
       console.error("Error updating prompt:", error);
     }
   };
-  const [parameters, setParameters] = useState<string[]>([]);
-  const [genStatus, setGenStatus] = useState<string[]>([]);
-  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [parameters, setParameters] = useState<string[]>([]);  // book name states
+  const [genStatus, setGenStatus] = useState<string[]>([]);   //generate status like update, added
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null); 
+  const [currentStartTime, setCurrentStartTime] = useState("");
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files && event.target.files[0];
     if (file) {
       setUploadedFile(file);
       const reader = new FileReader();
+
+      //upload text file and splite by line
       reader.onload = (e) => {
         const text = (e.target?.result as string)
           .split("\n")
           .filter((line) => line.trim() !== "");
-        setParameters(text);
+        setParameters(text); //save to parameters
       };
       reader.readAsText(file);
     }
   };
   const handleDeletePrompt = async (id: number) => {
+    //delete prompt on db
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/prompts/${id}`,
@@ -147,6 +169,7 @@ export default function Home() {
         const updatedPrompts = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/prompts`
         ).then((res) => res.json());
+        //update prompt as updated prompts
         setPrompts(updatedPrompts);
         if (updatedPrompts.length > 0) {
           setSelectedPrompt(updatedPrompts[0]);
@@ -160,6 +183,7 @@ export default function Home() {
 
   const handleAddPrompt = async () => {
     try {
+      //get prompts
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/prompts`,
         {
@@ -203,7 +227,14 @@ export default function Home() {
         const userData = await userResponse.json();
         setUserPrompts(userData);
 
-        // Fetch voice list
+        //Fetch content Type
+        const contentTypeResponse = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/content-type/`
+        );
+        const contentTypeData = await contentTypeResponse.json();
+        setContentTypes(contentTypeData);
+        setSelectedContentType(contentTypeData[0]);
+        // Fetch google  voice list
         const voiceResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/get-voice-list/`,
           {
@@ -215,6 +246,7 @@ export default function Home() {
         );
         const voiceData = await voiceResponse.json();
         setVoiceList(voiceData.voice_list);
+        // Fetch 11labs voice list
         const voiceElevenLabsResponse = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/get-elevenlabs-voice-list/`,
           {
@@ -241,35 +273,31 @@ export default function Home() {
     fetchData();
   }, []);
   const fetchHistoryData = async () => {
+    //fetch historydata from db by 
+    //start time and counts
     const scriptsResponse = await fetch(
-      `${process.env.NEXT_PUBLIC_API_URL}/scripts/`
+      `${process.env.NEXT_PUBLIC_API_URL}/scripts/start-time-counts`
     );
-    const scriptsData = await scriptsResponse.json();
-    const groupedScripts = scriptsData.reduce(
-      (grouped: { [key: string]: any[] }, script: any) => {
-        const time = script.start_time; // Use the full start_time for grouping
-        if (!grouped[time]) {
-          grouped[time] = [];
-        }
-        grouped[time].push(script);
-        return grouped;
-      },
-      {}
-    );
-
-    // Convert the groupedScripts object into an array of arrays
-    const groupedScriptsArray = Object.values(groupedScripts) as any[][];
-    setHistoryData(groupedScriptsArray);
+    const scriptsData:HistoryEntry[] = await scriptsResponse.json();
+    setHistoryData(scriptsData);
     return Promise.resolve();
   };
+  //get id and change prompt
   const handlePromptChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const selectedID = parseInt(event.target.value);
     setSelectedPrompt(prompts[selectedID]);
   };
 
+  const handleContentTypeChange = (
+    event: React.ChangeEvent<HTMLSelectElement>
+  ) => {
+    const selectedID = parseInt(event.target.value);
+    setSelectedContentType(contentTypes[selectedID]);
+  };
   const handleEditUserPrompt = async () => {
     if (!editingPrompt) return;
 
+    //update user prompt on db
     try {
       const response = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/userprompts/${editingPrompt.id}`,
@@ -295,6 +323,7 @@ export default function Home() {
     }
   };
 
+  //delete user prompt on db
   const handleDeleteUserPrompt = async (id: number) => {
     try {
       const response = await fetch(
@@ -318,7 +347,60 @@ export default function Home() {
       console.error("Error deleting user prompt:", error);
     }
   };
+// update contenty type on db
+  const handleEditConType = async () => {
+    if (!editingConType) return;
 
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/content-type/${editingConType.id}`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(editingConType),
+        }
+      );
+
+      if (response.ok) {
+        const updatedPrompts = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/content-type`
+        ).then((res) => res.json());
+        setContentTypes(updatedPrompts);
+        setEditingConType(null);
+        setSelectedContentType(editingConType);
+      }
+    } catch (error) {
+      console.error("Error updating user prompt:", error);
+    }
+  };
+//delete content type on db
+  const handleDeleteConType = async (id: number) => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/content-type/${id}`,
+        {
+          method: "DELETE",
+        }
+      );
+
+      if (response.ok) {
+        const updatedPrompts = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/content-type`
+        ).then((res) => res.json());
+        setContentTypes(updatedPrompts);
+        if (updatedPrompts.length > 0) {
+          setSelectedUserPrompt(updatedPrompts[0]);
+        }
+        setIsConTypeEditModalOpen(false);
+      }
+    } catch (error) {
+      console.error("Error deleting user prompt:", error);
+    }
+  };
+
+  //create userprompt and set it   on db
   const handleAddUserPrompt = async () => {
     try {
       const response = await fetch(
@@ -344,7 +426,33 @@ export default function Home() {
       console.error("Error adding user prompt:", error);
     }
   };
+//create content type and set it on db
+  const handleAddContentType = async () => {
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/content-type`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify(newContentType),
+        }
+      );
 
+      if (response.ok) {
+        const updatedcontents = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/content-type`
+        ).then((res) => res.json());
+        setContentTypes(updatedcontents);
+        setIsConTypeAddModalOpen(false);
+        setNewContentType({ title: ""});
+      }
+    } catch (error) {
+      console.error("Error adding user prompt:", error);
+    }
+  };
+  //update user prompt on db
   const handleUserPromptChange = (
     event: React.ChangeEvent<HTMLSelectElement>
   ) => {
@@ -353,18 +461,25 @@ export default function Home() {
     console.log(selectedID);
     setSelectedUserPrompt(userPrompts[selectedID]);
   };
+
+  //generate audio form parameter
   const handleGenerateAudio = async () => {
     setAudioLoading(true);
+    // set generation Range
+    if (genRange.start == 0) setGenRange({ start: 1, end: parameters.length });
     try {
       const audioUrls: string[] = [];
       let totalTimer = 0;
-      for (let [index, conversation] of Array.from(generatedText.entries())) {
+
+      for (let index = genRange.start - 1; index < genRange.end; index++) {
+        const conversation = generatedText[index];
         setProcessingIndex(index);
         const formData = new FormData();
         formData.append("currentSpeaker", JSON.stringify(currentSpeaker));
         formData.append("id", conversation.id.toString());
         formData.append("conversation", JSON.stringify(conversation.script));
         const startTime = performance.now();
+        //generrate audio
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/generate-audio`,
           {
@@ -382,7 +497,7 @@ export default function Home() {
         if (!response.ok) {
           throw new Error("Failed to generate audio");
         }
-
+        //Make it is possible to download
         const blob = await response.blob();
         const audioUrl = URL.createObjectURL(blob);
         audioUrls.push(audioUrl);
@@ -403,18 +518,18 @@ export default function Home() {
     if (audio) {
       // If audio is currently playing, stop it
       if (isPlaying) {
-        audio[currentIndex - 1].pause();
+        audio[currentIndex - genRange.start].pause();
         setIsPlaying(false);
       } else {
         // If audio is not playing, start it
-        audio[currentIndex - 1].play();
+        audio[currentIndex - genRange.start].play();
         setIsPlaying(true);
       }
     } else {
       // If audio object has not been created yet, create it
       const audioObjects = audioURL.map((url) => new Audio(url));
       setAudio(audioObjects);
-      audioObjects[currentIndex - 1].play();
+      audioObjects[currentIndex - genRange.start].play();
       setIsPlaying(true);
     }
   };
@@ -427,7 +542,8 @@ export default function Home() {
     gscript: string,
     stime: number,
     etime: number,
-    category: string
+    category: string,
+    type_content: string
   ) => {
     // function body...
     const startDate = new Date(stime + performance.timeOrigin);
@@ -447,6 +563,7 @@ export default function Home() {
             end_time: endDate.toISOString(),
             category,
             noupdate: isNoUpdate,
+            type_content,
           }),
         }
       );
@@ -497,114 +614,145 @@ export default function Home() {
       } else {
         const gstartTime = performance.now();
         for (let [index, parameter] of Array.from(slicedParameters.entries())) {
-          // Your code here...
-          setProcessingIndex(index);
-          const sprompt = selectedPrompt.description.replace("$1", parameter);
-          formData.set("prompt", sprompt);
-          const startTime = performance.now();
-          const response = await fetch(endpoint, {
-            method: "POST",
-            body: formData, // Always send formData
-            headers: undefined, // No need for Content-Type header with FormData
-          });
-          const endTime = performance.now();
-          const duration = endTime - startTime;
-          const formattedDuration = formatDuration(duration);
-          totalTimer += duration;
-          setScriptTotalTimer(totalTimer);
-          setScriptTimers((prevTimers) => [...prevTimers, formattedDuration]);
+          let attempt = 0;
+          let success = false;
 
-          const para = encodeURIComponent(parameter);
-          const responsetitle = await fetch(
-            `${process.env.NEXT_PUBLIC_API_URL}/scripts/title/${para}`
-          );
-          const responsetitleresult = await responsetitle.json();
-          if (responsetitleresult.exists) {
-            const existdb = responsetitleresult.script
-            if (isNoUpdate) {
-              allResults.push({
-                id: existdb.id,
-                script: JSON.parse(existdb.gscript),
-                category: existdb.category,
-              });
-              if (index === 0) setCurrentIndex(1);
-              setGeneratedText(allResults);
-              setGenStatus((prevStatus) => {
-                const newStatus = [...prevStatus]; // Create a copy of the previous status array
-                newStatus[index] = "Skipped"; // Replace the status at the specific index
-                return newStatus; // Return the new status array
-              });
-            } else {
-              const data = await response.json();
-
-              const starttime = new Date(gstartTime + performance.timeOrigin);
-              const endtime = new Date(endTime + performance.timeOrigin);
-              existdb.start_time = starttime.toISOString();
-              existdb.end_time = endtime.toISOString();
-              existdb.gscript = JSON.stringify(data.result);
-              existdb.noupdate = isNoUpdate;
-              const updateResponse = await fetch(
-                `${process.env.NEXT_PUBLIC_API_URL}/scripts/${existdb.id}`,
-                {
-                  method: "PUT",
-                  headers: {
-                    "Content-Type": "application/json",
-                  },
-                  body: JSON.stringify(existdb),
-                }
+          while (attempt < 5 && !success) {
+            try {
+              setProcessingIndex(index);
+              const sprompt = selectedPrompt.description.replace(
+                "$1",
+                parameter
               );
+              formData.set("prompt", sprompt);
+              const startTime = performance.now();
+              const response = await fetch(endpoint, {
+                method: "POST",
+                body: formData, // Always send formData
+                headers: undefined, // No need for Content-Type header with FormData
+              });
+              const endTime = performance.now();
+              const duration = endTime - startTime;
+              const formattedDuration = formatDuration(duration);
+              totalTimer += duration;
+              setScriptTotalTimer(totalTimer);
+              setScriptTimers((prevTimers) => [
+                ...prevTimers,
+                formattedDuration,
+              ]);
 
-              if (!updateResponse.ok) {
-                throw new Error("Failed to update script");
+              const para = encodeURIComponent(parameter);
+              const responsetitle = await fetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/scripts/title/${para}`
+              );
+              const responsetitleresult = await responsetitle.json();
+              if (responsetitleresult.exists) {
+                const existdb = responsetitleresult.script;
+                if (isNoUpdate) {
+                  allResults.push({
+                    id: existdb.id,
+                    script: JSON.parse(existdb.gscript),
+                    category: existdb.category,
+                    type_content: existdb.type_content,
+                  });
+                  if (index === 0) setCurrentIndex(1);
+                  setGeneratedText(allResults);
+                  setGenStatus((prevStatus) => {
+                    const newStatus = [...prevStatus]; // Create a copy of the previous status array
+                    newStatus[index] = "Skipped"; // Replace the status at the specific index
+                    return newStatus; // Return the new status array
+                  });
+                } else {
+                  const data = await response.json();
+
+                  const starttime = new Date(
+                    gstartTime + performance.timeOrigin
+                  );
+                  const endtime = new Date(endTime + performance.timeOrigin);
+                  existdb.start_time = starttime.toISOString();
+                  existdb.end_time = endtime.toISOString();
+                  existdb.gscript = JSON.stringify(data.result);
+                  existdb.noupdate = isNoUpdate;
+                  const updateResponse = await fetch(
+                    `${process.env.NEXT_PUBLIC_API_URL}/scripts/${existdb.id}`,
+                    {
+                      method: "PUT",
+                      headers: {
+                        "Content-Type": "application/json",
+                      },
+                      body: JSON.stringify(existdb),
+                    }
+                  );
+
+                  if (!updateResponse.ok) {
+                    throw new Error("Failed to update script");
+                  }
+
+                  const updatedScript = await updateResponse.json();
+
+                  allResults.push({
+                    id: updatedScript.id,
+                    script: JSON.parse(updatedScript.gscript),
+                    category: updatedScript.category,
+                    type_content: updatedScript.type_content,
+                  });
+                  if (index === 0) setCurrentIndex(1);
+                  setGeneratedText(allResults);
+                  setGenStatus((prevStatus) => {
+                    const newStatus = [...prevStatus]; // Create a copy of the previous status array
+                    newStatus[index] = "Updated"; // Replace the status at the specific index
+                    return newStatus; // Return the new status array
+                  });
+                }
+                success = true;
+                continue;
               }
 
-              const updatedScript = await updateResponse.json();
+              const data = await response.json();
+              let category = null;
 
-              allResults.push({
-                id: updatedScript.id,
-                script: JSON.parse(updatedScript.gscript),
-                category: updatedScript.category,
-              });
-              if (index === 0) setCurrentIndex(1);
-              setGeneratedText(allResults);
-              setGenStatus((prevStatus) => {
-                const newStatus = [...prevStatus]; // Create a copy of the previous status array
-                newStatus[index] = "Updated"; // Replace the status at the specific index
-                return newStatus; // Return the new status array
-              });
+              if (isGenCategory) {
+                category = await getCategory(parameter);
+              }
+
+              if (data.error) {
+                console.error(data.error);
+              } else {
+                const result = await addScript(
+                  parameter,
+                  JSON.stringify(data.result),
+                  gstartTime,
+                  endTime,
+                  category,
+                  selectedContentType?.title|| "defaultTitle" 
+                );
+                allResults.push({
+                  id: result.id,
+                  script: data.result,
+                  category: category,
+                  type_content: selectedContentType?.title,
+                });
+                if (index === 0) setCurrentIndex(1);
+                setGeneratedText(allResults);
+                setGenStatus((prevStatus) => {
+                  const newStatus = [...prevStatus]; // Create a copy of the previous status array
+                  newStatus[index] = "Added"; // Replace the status at the specific index
+                  return newStatus; // Return the new status array
+                });
+                success = true;
+              }
+            } catch (error) {
+              console.error(`Error processing index ${index}:`, error);
+              attempt++;
+              if (attempt < 5) {
+                console.log(`Retrying index ${index} in 10 seconds...`);
+                await new Promise((resolve) => setTimeout(resolve, 10000));
+              } else {
+                console.error(
+                  `Failed to process index ${index} after 5 attempts.`
+                );
+              }
             }
-            continue;
-          }
-         
-          const data = await response.json();
-          let category = null;
-
-          if (isGenCategory) {
-            category = await getCategory(parameter);
-          }
-
-          if (data.error) {
-            console.error(data.error);
-          } else {
-            const result = await addScript(
-              parameter,
-              JSON.stringify(data.result),
-              gstartTime,
-              endTime,
-              category
-            );
-            allResults.push({
-              id: result.id,
-              script: data.result,
-              category: category,
-            });
-            if (index === 0) setCurrentIndex(1);
-            setGeneratedText(allResults);
-            setGenStatus((prevStatus) => {
-              const newStatus = [...prevStatus]; // Create a copy of the previous status array
-              newStatus[index] = "Added"; // Replace the status at the specific index
-              return newStatus; // Return the new status array
-            });
           }
         }
       }
@@ -630,11 +778,94 @@ export default function Home() {
     const data = await response.json();
     return data.result;
   };
+  const fetchScripts = async (skip = 0, limit = 100, startTime: string | undefined = undefined) => {
+    try {
+      const queryParams = new URLSearchParams({
+        skip: skip.toString(),
+        limit: limit.toString(),
+      });
+  
+      if (startTime) {
+        queryParams.append("start_time", startTime);
+      }
+  
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/scripts?${queryParams.toString()}`
+      );
+  
+      if (!response.ok) {
+        throw new Error("Failed to fetch scripts");
+      }
+  
+      const data = await response.json();
+      
+      const generatedText = data.map((item: any) => ({
+        id: item.id,
+        script: JSON.parse(item.gscript),
+        category:item.category,
+        type_content:item.type_content
+      }));
+      const titles = data.map((item:any) => item.title);
+      setGeneratedText(generatedText);
+      setParameters(titles);
+    } catch (error) {
+      console.error("Error fetching scripts:", error);
+    }
+  }; 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     if (event.target.files && event.target.files.length > 0) {
       const file = event.target.files[0];
       setFile(file);
       setFileUploaded(true);
+    }
+  };
+  const handleBackup = async () => {
+    setIsBackupLoading(true);
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/db/backup`, {
+        method: "POST",
+      });
+  
+      if (response.ok) {
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "backup.sql"; // Set the desired file name
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url); // Clean up the URL object
+      } else {
+        const errorText = await response.text();
+        console.error("Backup failed:", errorText);
+      }
+    } catch (error) {
+      console.error("Error during backup:", error);
+    } finally {
+      setIsBackupLoading(false);
+    }
+  };
+  
+  const handleRestore = async (file: File) => {
+    setIsRestoreLoading(true);
+    const formData = new FormData();
+    formData.append("file", file);
+  
+    try {
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/db/restore`, {
+        method: "POST",
+        body: formData,
+      });
+      if (response.ok) {
+        console.log("Restore successful");
+      } else {
+        console.error("Restore failed");
+      }
+    } catch (error) {
+      console.error("Error during restore:", error);
+    } finally {
+      setIsRestoreLoading(false);
     }
   };
   const saveGeneratedChanges = async () => {
@@ -650,6 +881,7 @@ export default function Home() {
     scriptData.title = title;
     scriptData.gscript = JSON.stringify(generatedText[currentIndex - 1].script);
     scriptData.category = generatedText[currentIndex - 1].category;
+    scriptData.type_content = generatedText[currentIndex - 1].type_content;
     // Send a PUT request to the server with the updated data
     const updateResponse = await fetch(
       `${process.env.NEXT_PUBLIC_API_URL}/scripts/${id}`,
@@ -682,7 +914,7 @@ export default function Home() {
           <Bars fill="cyan" className="h-12 w-12" />
         </div>
       ) : (
-        <div className="w-[80%] pt-16 flex flex-col gap-8">
+        <div className="w-[80%] pt-10 flex flex-col gap-8">
           <div className="flex w-full drop-shadow-lg  gap-8">
             <div className="w-1/4">
               <div className="w-full bg-slate-800 px-4 py-4 rounded-xl border-l-4 border-sky-500 flex flex-col gap-3">
@@ -776,6 +1008,38 @@ export default function Home() {
                   </div>
                 )}
                 <div className="flex flex-col gap-3">
+                <div className="flex gap-2">
+                    <div className="flex items-center ">
+                      <p className="text-white">TypeContent:</p>
+                    </div>
+                    <select
+                      id="content type"
+                      className="p-2.5 w-full text-sm rounded-lg border bg-gray-700 outline-none border-gray-600 placeholder-gray-400 text-white focus:ring-sky-500 focus:border-sky-500"
+                      onChange={handleContentTypeChange}
+                    >
+                      {contentTypes.map((contype, index) => (
+                        <option key={index} value={index}>
+                          {contype.title}
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      className="px-2  text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg flex items-center"
+                      title="Add New User Prompt"
+                      onClick={() => setIsConTypeAddModalOpen(true)}
+                    >
+                      <AiFillPlusSquare
+                        style={{ width: "20px", height: "20px" }}
+                      />
+                    </button>
+                    <button
+                      className="px-2  text-white bg-cyan-600 hover:bg-cyan-700 rounded-lg flex items-center"
+                      title="Edit User Prompts"
+                      onClick={() => setIsConTypeEditModalOpen(true)}
+                    >
+                      <AiFillEdit style={{ width: "20px", height: "20px" }} />
+                    </button>
+                  </div>
                   <div className="flex gap-2 ">
                     <div className="flex items-center">
                       <p className="text-white">System:</p>
@@ -828,7 +1092,7 @@ export default function Home() {
                     rows={5}
                     className="block p-2.5 w-full text-sm rounded-lg border bg-gray-700 outline-none border-gray-600 placeholder-gray-400 text-white focus:ring-sky-500 focus:border-sky-500"
                     placeholder="Write a small description of type of style you want your space to be..."
-                    value={selectedPrompt?.description || ""} // Bind textarea value to selectedPrompt state
+                    value={selectedPrompt?.description} // Bind textarea value to selectedPrompt state
                     onChange={(e) =>
                       selectedPrompt
                         ? setSelectedPrompt({
@@ -996,9 +1260,49 @@ export default function Home() {
             </div>
 
             <div className="w-3/4 flex flex-col gap-3 ">
-              <h1 className="text-white/80 w-full font-extrabold text-4xl py-6 px-8 drop-shadow-lg bg-slate-800 rounded-xl border-l-4 border-sky-500">
-                Podcast AI <span className="text-white">1.1.1</span>
-              </h1>
+              <div className="flex items-end justify-between w-full bg-slate-800 rounded-xl border-l-4 border-sky-500 drop-shadow-lg">
+                <h1 className="text-white/80 font-extrabold text-4xl py-6 px-8  ">
+                  Podcast AI <span className="text-white">1.3.0</span>
+                </h1>
+                <div className=" flex gap-2 p-2">
+                  <button
+                    className="text-white bg-cyan-500 relative px-1 py-1 justify-center items-center rounded-lg disabled:bg-cyan-800 hover:bg-cyan-600 cursor-pointer"
+                    onClick={handleBackup}
+                    disabled={isBackupLoading}
+                  >
+                    {isBackupLoading ? (
+                      <Circles style={{ width: "24px", height: "24px" }} />
+                    ) : (
+                      <AiOutlineCloudDownload
+                        style={{ width: "24px", height: "24px" }}
+                      />
+                    )}
+                  </button>
+                  <button
+                    className="text-white bg-cyan-500 relative px-1 py-1 justify-center items-center rounded-lg disabled:bg-cyan-800 hover:bg-cyan-600 cursor-pointer"
+                    onClick={() =>
+                      fileInputRefRestore.current && fileInputRefRestore.current.click()
+                    }
+                    disabled={isRestoreLoading}
+                  >
+                    {isRestoreLoading ? (
+                      <Circles style={{ width: "24px", height: "24px" }} />
+                    ) : (
+                      <AiOutlineCloudUpload
+                        style={{ width: "24px", height: "24px" }}
+                      />
+                    )}
+                    <input
+                      ref={fileInputRefRestore}
+                      type="file"
+                      onChange={(e) =>
+                        e.target.files && handleRestore(e.target.files[0])
+                      }
+                      style={{ display: "none" }}
+                    />
+                  </button>
+                </div>
+              </div>
 
               <div className="w-full flex flex-col h-[740px]">
                 <div className="w-full h-12   bg-slate-600 rounded-t-xl flex justify-between items-center p-2  ">
@@ -1023,7 +1327,7 @@ export default function Home() {
                     {audioLoading ? (
                       <p className="pl-10 text-white text-[16px]">
                         Processing Audio generation item:{processingIndex + 1}/
-                        {parameters.length}{" "}
+                        {genRange.end}{" "}
                         <span className="text-red-500">
                           ({parameters[processingIndex]})
                         </span>{" "}
@@ -1063,12 +1367,14 @@ export default function Home() {
                       <p className="font-bold text-gray-400">0/0</p>
                     ) : (
                       <p className="font-bold text-white">
-                        {currentIndex}/{generatedText.length}
+                        {currentIndex}/{parameters.length}
                       </p>
                     )}
                     <button
                       className="  text-white bg-cyan-500 px-1 py-1 justify-center items-center  rounded-lg disabled:bg-cyan-800 hover:bg-cyan-600 cursor-pointer"
-                      onClick={() => setCurrentIndex(currentIndex + 1)}
+                      onClick={() => {
+                        setCurrentIndex(currentIndex + 1)
+                       }}
                       disabled={
                         currentIndex === generatedText.length ||
                         !generatedText.length ||
@@ -1088,7 +1394,10 @@ export default function Home() {
                       disabled={
                         !audioURL ||
                         audioURL.length === 0 ||
-                        !(currentIndex < audioURL.length + 1)
+                        !(
+                          currentIndex < genRange.end + 1 &&
+                          currentIndex > genRange.start - 1
+                        )
                       }
                     >
                       {isPlaying ? (
@@ -1105,10 +1414,13 @@ export default function Home() {
                     {!(
                       !audioURL ||
                       audioURL.length === 0 ||
-                      !(currentIndex < audioURL.length + 1)
+                      !(
+                        currentIndex < genRange.end + 1 &&
+                        currentIndex > genRange.start - 1
+                      )
                     ) && (
                       <a
-                        href={audioURL[currentIndex - 1]}
+                        href={audioURL[currentIndex - genRange.start]}
                         download={formatDownloadFile(
                           parameters[currentIndex - 1]
                         )}
@@ -1134,6 +1446,15 @@ export default function Home() {
                           </p>
                         </div>
                       )}
+                    </button>
+                    <button
+                      className="  text-white bg-cyan-500 relative px-1 py-1 justify-center items-center  rounded-lg disabled:bg-cyan-800 hover:bg-cyan-600 cursor-pointer"
+                      onClick={() => setModalStatus(ModalStatus.SetRangeModal)}
+                      disabled={!parameters.length}
+                    >
+                      <AiOutlineSwapRight
+                        style={{ width: "24px", height: "24px" }}
+                      />
                     </button>
                     <button
                       className="  text-white bg-cyan-500 relative px-1 py-1 justify-center items-center  rounded-lg disabled:bg-cyan-800 hover:bg-cyan-600 cursor-pointer"
@@ -1164,6 +1485,7 @@ export default function Home() {
                       className="  text-white bg-cyan-500 px-1 py-1 justify-center items-center  rounded-lg disabled:bg-cyan-800 hover:bg-cyan-600 cursor-pointer"
                       onClick={async () => {
                         if (modalStatus === ModalStatus.HistoryModal) {
+                          setGenStatus([]);
                           setModalStatus(ModalStatus.Closed);
                         } else {
                           setHistoryLoading(true);
@@ -1193,14 +1515,16 @@ export default function Home() {
                   </div>
                   {/* )} */}
                 </div>
-                <div className="w-full  min-h-[690px] relative  bg-slate-800 rounded-b-xl ">
+                <div className="w-full  min-h-[750px] relative  bg-slate-800 rounded-b-xl ">
                   <HistoryModal
                     isOpen={modalStatus}
                     onClose={() => setModalStatus(ModalStatus.Closed)}
                     historyData={historyData || []}
                     setCurrentIndex={setCurrentIndex}
-                    setGeneratedText={setGeneratedText}
-                    setParameters={setParameters}
+                 
+                    fetchScripts={fetchScripts}
+                    setTtotalCount ={setTtotalCount}
+                    setCurrentStartTime ={setCurrentStartTime}
                   />
                   <div className="w-full h-full p-5 relative  flex flex-col overflow-auto  ">
                     {generatedText.length > 0 && (
@@ -1230,12 +1554,20 @@ export default function Home() {
             onClose={() => setModalStatus(ModalStatus.Closed)}
             audioUrls={audioURL}
             parameters={parameters}
+            genRange={genRange}
           />
           <SetStartIndexModal
             isOpen={modalStatus}
             onClose={() => setModalStatus(ModalStatus.Closed)}
             startIndex={startIndex}
             setStartIndex={setStartIndex}
+            limit={parameters.length}
+          />
+          <SetGenerateAudioRangeModal
+            isOpen={modalStatus}
+            onClose={() => setModalStatus(ModalStatus.Closed)}
+            genRange={genRange}
+            setGenRange={setGenRange}
             limit={parameters.length}
           />
 
@@ -1407,7 +1739,6 @@ export default function Home() {
               </div>
             </div>
           )}
-
           {/* User Edit Modal */}
           {isUserEditModalOpen && (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
@@ -1491,6 +1822,116 @@ export default function Home() {
                     onClick={() => {
                       setIsUserEditModalOpen(false);
                       setEditingPrompt(null);
+                    }}
+                  >
+                    Close
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+         {isConTypeAddModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="bg-slate-800 p-6 rounded-lg w-96">
+                <h2 className="text-white text-xl mb-4">Add New Content Type</h2>
+                <input
+                  type="text"
+                  placeholder="Title"
+                  className="w-full p-2 mb-4 bg-gray-700 text-white rounded"
+                  value={newContentType.title}
+                  onChange={(e) =>
+                    setNewContentType({ ...newContentType, title: e.target.value })
+                  }
+                />
+                 
+                <div className="flex justify-end gap-2">
+                  <button
+                    className="px-4 py-2 bg-gray-600 text-white rounded"
+                    onClick={() => setIsConTypeAddModalOpen(false)}
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    className="px-4 py-2 bg-cyan-600 text-white rounded"
+                    onClick={handleAddContentType}
+                  >
+                    Add
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+          {/* User Edit Modal */}
+          {isConTypeEditModalOpen && (
+            <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+              <div className="bg-slate-800 p-6 rounded-lg w-96">
+                <h2 className="text-white text-xl mb-4">Edit ContentType</h2>
+                <div className="max-h-96 overflow-y-auto">
+                  {editingConType ? (
+                    <div className="mb-4 p-4 bg-gray-700 rounded">
+                      <input
+                        type="text"
+                        className="w-full p-2 mb-2 bg-gray-600 text-white rounded"
+                        value={editingConType.title}
+                        onChange={(e) =>
+                          setEditingConType({
+                            ...editingConType,
+                            title: e.target.value,
+                          })
+                        }
+                      />
+                      
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          className="px-3 py-1 bg-gray-600 text-white rounded"
+                          onClick={() => setEditingConType(null)}
+                        >
+                          Cancel
+                        </button>
+                        <button
+                          className="px-3 py-1 bg-cyan-600 text-white rounded"
+                          onClick={handleEditConType}
+                        >
+                          Save
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="mb-4 p-4 bg-gray-700 rounded">
+                      <h3 className="text-white font-bold">
+                        {selectedContentType?.title}
+                      </h3> 
+                      <div className="flex justify-end gap-2 mt-2">
+                        <button
+                          className="px-3 py-1 bg-cyan-600 text-white rounded"
+                          onClick={() =>
+                            selectedContentType
+                              ? setEditingConType(selectedContentType)
+                              : null
+                          }
+                        >
+                          Edit
+                        </button>
+                        <button
+                          className="px-3 py-1 bg-red-600 text-white rounded"
+                          onClick={() =>
+                            selectedContentType &&
+                            handleDeleteConType(selectedContentType.id)
+                          }
+                        >
+                          Delete
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </div>
+                <div className="flex justify-end mt-4">
+                  <button
+                    className="px-4 py-2 bg-gray-600 text-white rounded"
+                    onClick={() => {
+                      setIsConTypeEditModalOpen(false);
+                      setEditingConType(null);
                     }}
                   >
                     Close
