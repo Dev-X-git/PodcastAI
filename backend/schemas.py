@@ -1,6 +1,7 @@
 from pydantic import BaseModel
 from datetime import datetime
 from typing import Optional
+
 class PromptBase(BaseModel):
     title: str
     description: str

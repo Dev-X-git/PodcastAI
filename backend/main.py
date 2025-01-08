@@ -16,9 +16,11 @@ models.Base.metadata.create_all(bind=engine)
 app = FastAPI(
     title="My backend"
 )
+#make static files
 app.mount("/media", StaticFiles(directory="media"), name="media")
 app.mount("/dbs", StaticFiles(directory="dbs"), name="dbs")
 
+# set up middleware
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
@@ -27,15 +29,15 @@ app.add_middleware(
     allow_headers=["*"]
 )
 
+#load env file and access the environment variable
 load_dotenv()
-
-# Now you can access the environment variable
+ 
 google_credentials = os.getenv('GOOGLE_APPLICATION_CREDENTIALS')
 
 # Include routers
-app.include_router(prompts.router, prefix="/prompts", tags=["prompts"])
-app.include_router(scripts.router, prefix="/scripts", tags=["scripts"])
-app.include_router(userprompts.router, prefix="/userprompts", tags=["userprompts"])
-app.include_router(generation.router, tags=["generation"])
-app.include_router(db_manage.router,prefix="/db", tags=["db management"])
-app.include_router(contenttype.router,prefix="/content-type", tags=["content type"])
+app.include_router(prompts.router, prefix="/prompts", tags=["prompts"])  #prompt handling
+app.include_router(scripts.router, prefix="/scripts", tags=["scripts"])  #script table handling
+app.include_router(userprompts.router, prefix="/userprompts", tags=["userprompts"]) #user prompt
+app.include_router(generation.router, tags=["generation"])  #text and audio generation
+app.include_router(db_manage.router,prefix="/db", tags=["db management"])  # db backup and restore
+app.include_router(contenttype.router,prefix="/content-type", tags=["content type"])  #content type table hanlding

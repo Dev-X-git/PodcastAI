@@ -1,7 +1,8 @@
 from sqlalchemy import Column, Integer, String, DateTime, Boolean
 from database import Base
 
-class Prompt(Base):
+ #prompt model
+class Prompt(Base):  
     __tablename__ = "prompts"
 
     id = Column(Integer, primary_key=True, index=True)
@@ -21,7 +22,7 @@ class ContentType(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True)
 
-class Script(Base):
+class Script(Base):   
     __tablename__ = "scripts"
 
     id = Column(Integer, primary_key=True, index=True)
