@@ -8,7 +8,7 @@ This guide will help you set up and run the project, which consists of a fronten
 - Python and pip installed on your machine.
 - Ensure you have the necessary credentials for Google Cloud Platform (GCP).
 
-## Frontend Setup
+## Frontend Setup.
 
 1. **Navigate to the frontend directory:**
 
