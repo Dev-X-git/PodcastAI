@@ -1,7 +1,7 @@
 ## Prerequisites
 
 - Node.js and npm installed on your machine.
-- Python and pip installed on your machine.
+- Python and pip installed on your machine
 - Ensure you have the necessary credentials for Google Cloud Platform (GCP).
 
 ## Frontend Setup
