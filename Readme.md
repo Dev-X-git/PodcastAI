@@ -54,7 +54,7 @@ This guide will help you set up and run the project, which consists of a fronten
 
 3. **Create and configure the `.env` file:**
 
-   Create a file named `.env` in the `backend` directory and add the following configuration:
+   Create a file named `.env` in the `backend` directory and add the following configuration::
 
    ```plaintext
    GOOGLE_APPLICATION_CREDENTIALS=D:\Current Project\@Podcast-AI\backend\gcp.json
