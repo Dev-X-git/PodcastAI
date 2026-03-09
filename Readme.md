@@ -1,4 +1,4 @@
-# Project Setup and Execution
+# Project Setup and Execution.
 
 This guide will help you set up and run the project, which consists of a frontend and a backend service.
 
