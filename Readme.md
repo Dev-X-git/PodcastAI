@@ -2,7 +2,7 @@
 
 This guide will help you set up and run the project, which consists of a frontend and a backend service.
 
-## Prerequisites
+## Prerequisites.
 
 - Node.js and npm installed on your machine.
 - Python and pip installed on your machine.
